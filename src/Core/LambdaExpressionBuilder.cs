@@ -15,7 +15,7 @@ namespace DynamicSearch.Core
             var propertyParam = Expression.Property(parameter, condition.Field);
 
             var propertyInfo = propertyParam.Member as PropertyInfo;
-            if (propertyInfo == null) 
+            if (propertyInfo == null)
                 throw new MissingMemberException(nameof(Condition), condition.Field);
 
             //Support Nullable<>
@@ -24,16 +24,21 @@ namespace DynamicSearch.Core
                 propertyParam = Expression.Property(propertyParam, "Value");
 
             //Support IEnumerable && IEnumerable<T>
-            var typeOfIEnumerable = typeof(Enumerable);
-            if (condition.Op != Operation.StdIn && condition.Op != Operation.StdNotIn) {
+            if (condition.Op != Operation.StdIn && condition.Op != Operation.StdNotIn)
+            {
                 condition.Value = Convert.ChangeType(condition.Value, realPropertyType);
-            } else {
+            }
+            else
+            {
                 var typeOfValue = condition.Value.GetType();
                 var typeOfList = typeof(IEnumerable<>).MakeGenericType(realPropertyType);
                 if (typeOfValue.IsGenericType && typeOfList.IsAssignableFrom(typeOfValue))
-                    condition.Value = condition.Value as Enumerable;
+                    condition.Value = typeof(Enumerable)
+                    .GetMethod("ToArray", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static)
+                    .MakeGenericMethod(realPropertyType)
+                    .Invoke(null, new object[] { condition.Value });
             }
-                
+
             var constantParam = Expression.Constant(condition.Value);
             switch (condition.Op)
             {
@@ -58,7 +63,7 @@ namespace DynamicSearch.Core
                 case Operation.LessThanOrEquals:
                     return Expression.LessThanOrEqual(propertyParam, constantParam);
                 case Operation.StdIn:
-                    return Expression.Call(typeof(Enumerable), "Contains",new Type[] { realPropertyType }, new Expression[] { constantParam, propertyParam });
+                    return Expression.Call(typeof(Enumerable), "Contains", new Type[] { realPropertyType }, new Expression[] { constantParam, propertyParam });
                 case Operation.StdNotIn:
                     return Expression.Not(Expression.Call(typeof(Enumerable), "Contains", new Type[] { realPropertyType }, new Expression[] { constantParam, propertyParam }));
             }
@@ -115,10 +120,11 @@ namespace DynamicSearch.Core
             var parameter = Expression.Parameter(typeof(T), "x");
             var simpleExps = conditions
                 .ToList()
-                .Select(c=>GetExpression(parameter, c))
+                .Select(c => GetExpression(parameter, c))
                 .ToList();
 
-            var exp = simpleExps.Aggregate<Expression, Expression>(null, (left, right) => {
+            var exp = simpleExps.Aggregate<Expression, Expression>(null, (left, right) =>
+            {
                 if (left == null)
                     return right;
                 return Expression.AndAlso(left, right);
@@ -127,16 +133,17 @@ namespace DynamicSearch.Core
 
         }
 
-        public static Expression<Func<T,bool>> BuildOrElseLambda<T>(IEnumerable<Condition> conditions)
+        public static Expression<Func<T, bool>> BuildOrElseLambda<T>(IEnumerable<Condition> conditions)
         {
             if (conditions == null || !conditions.Any()) return x => true;
             var parameter = Expression.Parameter(typeof(T), "x");
             var simpleExps = conditions
                 .ToList()
-                .Select(c=>GetExpression(parameter, c))
+                .Select(c => GetExpression(parameter, c))
                 .ToList();
 
-            var exp = simpleExps.Aggregate<Expression, Expression>(null, (left, right) => {
+            var exp = simpleExps.Aggregate<Expression, Expression>(null, (left, right) =>
+            {
                 if (left == null)
                     return right;
                 return Expression.OrElse(left, right);

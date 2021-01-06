@@ -15,7 +15,7 @@ namespace DynamicSearch.Test
         [Fact]
         public void Test_SpecialCase()
         {
-            var list  = new List<Foo>();
+            var list = new List<Foo>();
             var query = new QueryModel();
             query.Add(new Condition() { Field = "p2", Op = Operation.Equals, Value = 2});
             query.Add(new Condition() { Field = "p2", Op = Operation.StdIn, Value = new List<int> { 1, 2, 3} });
