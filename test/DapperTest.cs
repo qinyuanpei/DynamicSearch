@@ -1,5 +1,6 @@
 using System;
 using Xunit;
+using System.Linq;
 using DynamicSearch.Core;
 using DynamicSearch.Extenstions;
 using System.Collections.Generic;
@@ -15,12 +16,12 @@ namespace DynamicSearch.Test
         public void Test_SpecialCase()
         {
             var list  = new List<Foo>();
-            // var query = new QueryModel();
-            // query.Add(new Condition() { Field = "p2", Op = Operation.Equals, Value = 2});
-            // query.Add(new Condition() { Field = "p2", Op = Operation.StdIn, Value = new List<int> { 1, 2, 3} });
-            // var lambdaExp = LambdaExpressionBuilder.BuildLambda<Foo>(query);
-            // var lambda = lambdaExp.Compile();
-            var obj = typeof(List<>).MakeGenericType(typeof(Foo)).GetMethod("ToArray", System.Reflection.BindingFlags.Static).Invoke(list, null);
+            var query = new QueryModel();
+            query.Add(new Condition() { Field = "p2", Op = Operation.Equals, Value = 2});
+            query.Add(new Condition() { Field = "p2", Op = Operation.StdIn, Value = new List<int> { 1, 2, 3} });
+            var lambdaExp = LambdaExpressionBuilder.BuildLambda<Foo>(query);
+            var lambda = lambdaExp.Compile();
+            list = list.Where(lambda).ToList();
         }
 
         public class Foo

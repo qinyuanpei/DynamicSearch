@@ -24,16 +24,14 @@ namespace DynamicSearch.Core
                 propertyParam = Expression.Property(propertyParam, "Value");
 
             //Support IEnumerable && IEnumerable<T>
+            var typeOfIEnumerable = typeof(Enumerable);
             if (condition.Op != Operation.StdIn && condition.Op != Operation.StdNotIn) {
                 condition.Value = Convert.ChangeType(condition.Value, realPropertyType);
             } else {
                 var typeOfValue = condition.Value.GetType();
-                var typeOfList = typeof(List<>).MakeGenericType(realPropertyType);
+                var typeOfList = typeof(IEnumerable<>).MakeGenericType(realPropertyType);
                 if (typeOfValue.IsGenericType && typeOfList.IsAssignableFrom(typeOfValue))
-                {
-                    condition.Value = typeOfList.GetMethod("ToArray").Invoke(condition.Value, null);
-                }
-             
+                    condition.Value = condition.Value as Enumerable;
             }
                 
             var constantParam = Expression.Constant(condition.Value);
