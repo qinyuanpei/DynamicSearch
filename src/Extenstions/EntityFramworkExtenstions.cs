@@ -13,12 +13,21 @@ namespace DynamicSearch.Extenstions
     {
         public static IEnumerable<T> Search<T>(this IQueryable<T> source, SearchParameters searchParameters)
         {
-            return source
+            if (searchParameters.Query == null) 
+                return source;
+
+            if (searchParameters.Page == null) 
+                return source.Where(searchParameters.Query);
+
+            var results = source 
                 .Where(searchParameters.Query)
-                .OrderBy(searchParameters.Page)
                 .Skip((searchParameters.Page.CurrentPage - 1) * searchParameters.Page.PageSize)
-                .Take(searchParameters.Page.PageSize)
-                .ToList();
+                .Take(searchParameters.Page.PageSize);
+
+            if (searchParameters.Page.SortFields == null || !searchParameters.Page.SortFields.Any())
+                return results;
+                
+            return results.OrderBy(searchParameters.Page).ToList();
         }
         private static IQueryable<T> Where<T>(this IQueryable<T> source, QueryModel query)
         {

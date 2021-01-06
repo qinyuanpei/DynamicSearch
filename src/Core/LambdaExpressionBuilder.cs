@@ -16,11 +16,26 @@ namespace DynamicSearch.Core
 
             var propertyInfo = propertyParam.Member as PropertyInfo;
             if (propertyInfo == null) 
-                throw new ArgumentException($"Invalid property \"{condition.Field}\"");
+                throw new MissingMemberException(nameof(Condition), condition.Field);
 
+            //Support Nullable<>
             var realPropertyType = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
-            if (condition.Op != Operation.StdIn && condition.Op != Operation.StdNotIn)
+            if (propertyInfo.PropertyType.IsGenericType && propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(Nullable<>))
+                propertyParam = Expression.Property(propertyParam, "Value");
+
+            //Support IEnumerable && IEnumerable<T>
+            if (condition.Op != Operation.StdIn && condition.Op != Operation.StdNotIn) {
                 condition.Value = Convert.ChangeType(condition.Value, realPropertyType);
+            } else {
+                var typeOfValue = condition.Value.GetType();
+                var typeOfList = typeof(List<>).MakeGenericType(realPropertyType);
+                if (typeOfValue.IsGenericType && typeOfList.IsAssignableFrom(typeOfValue))
+                {
+                    condition.Value = typeOfList.GetMethod("ToArray").Invoke(condition.Value, null);
+                }
+             
+            }
+                
             var constantParam = Expression.Constant(condition.Value);
             switch (condition.Op)
             {

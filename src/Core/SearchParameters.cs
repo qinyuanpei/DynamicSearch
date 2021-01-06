@@ -13,8 +13,8 @@ namespace DynamicSearch.Core
 
     public class SearchParameters
     {
-        public PageModel Page { get; set; }
-        public QueryModel Query { get; set; }
+        public PageModel Page { get; set; } = PageModel.Default;
+        public QueryModel Query { get; set; } = new QueryModel();
     }
 
     public class QueryModel : List<Condition>
@@ -39,6 +39,7 @@ namespace DynamicSearch.Core
         public int PageSize { get; set; } = 500;
         public SortType SortType { get; set; }
         public List<string> SortFields { get; set; }
+        public static PageModel Default => new PageModel() { PageSize = 20, CurrentPage = 1 };
     }
 
     public enum SortType
