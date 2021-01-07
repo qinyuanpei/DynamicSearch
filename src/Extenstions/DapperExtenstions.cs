@@ -14,9 +14,21 @@ namespace DynamicSearch.Extenstions
     using DynamicSearch.Core;
     public static class DapperExstenstions
     {
-        public static IEnumerable<TEntity> Search<TEntity>(this IDbConnection connection, SearchParameters searchParameters)
+        public static IEnumerable<TEntity> Search<TEntity>(this IDbConnection connection, SearchParameters searchParameters, ITypeMappingProvider typeMappingProvider = null, string palceHoder = "@")
         {
-            var builder = new StringBuilder($"SELECT * FROM {typeof(TEntity).Name}");
+            var entityType = typeof(TEntity);
+
+            //构建表名
+            var tableName = entityType.Name;
+            if (typeMappingProvider != null)
+                tableName = typeMappingProvider.GetTableName(entityType);
+
+            //构建查询列
+            var columns = string.Join(",", entityType.GetProperties().Select(x => $" {x.Name} "));
+            if (typeMappingProvider != null)
+                columns = string.Join(",", entityType.GetProperties().Select(x => $" {typeMappingProvider.GetColumnName(x)} "));
+
+            var builder = new StringBuilder($"SELECT {columns} FROM {tableName}");
 
             //构建Where语句
             var sqlWhere = searchParameters.BuildSqlWhere();
@@ -41,7 +53,7 @@ namespace DynamicSearch.Extenstions
         }
         private static (string, Dictionary<string, object>) BuildSqlWhere(this SearchParameters searchParameters)
         {
-            var conditions = searchParameters.Query;
+            var conditions = searchParameters.QueryModel;
             if (conditions == null || !conditions.Any())
                 return (string.Empty, null);
 
@@ -62,12 +74,14 @@ namespace DynamicSearch.Extenstions
 
         private static string BuildSqlOrderBy(this SearchParameters searchParameters)
         {
-            var pageInfo = searchParameters.Page;
+            var pageInfo = searchParameters.PageModel;
             if (pageInfo.SortFields != null && pageInfo.SortFields.Any())
             {
-                var orderBy = string.Join(",", pageInfo.SortFields);
-                var orderType = pageInfo.SortType == SortType.Asc ? "ASC" : "DESC";
-                return $" ORDER BY {orderBy} {orderType}";
+                var orderBy = string.Join(",", pageInfo.SortFields.Select(x=>{
+                    var sortType = x.SortType == SortType.Asc?"ASC" : "DESC";
+                    return $" {x.Field} {sortType} ";
+                }));
+                return $" ORDER BY {orderBy} ";
             }
 
             return string.Empty;
@@ -75,14 +89,17 @@ namespace DynamicSearch.Extenstions
 
         private static string BuildSqlLimit(this SearchParameters searchParameters)
         {
-            var pageInfo = searchParameters.Page;
+            var pageInfo = searchParameters.PageModel;
             var skipCount = (pageInfo.CurrentPage - 1) * pageInfo.PageSize;
             var pageSize = pageInfo.PageSize;
             return ($" LIMIT {skipCount}, {pageSize}");
         }
 
-        private static string BuildSqlWhere(this IEnumerable<Condition> conditions, ref Dictionary<string, object> sqlParams, string keywords = " AND ")
+        private static string BuildSqlWhere(this IEnumerable<Condition> conditions, ref Dictionary<string, object> sqlParams, string keywords = " AND ", string placeHolder = null)
         {
+            //默认使用@，像Oracle这种使用:的就是异类:)
+            if (string.IsNullOrEmpty(placeHolder)) placeHolder = "@";
+
             if (conditions == null || !conditions.Any())
                 return string.Empty;
 
@@ -91,55 +108,56 @@ namespace DynamicSearch.Extenstions
             foreach (var condition in conditions)
             {
                 var index = sqlParams.Count + sqlParamIndex;
+                var paramName = $"Param{index}";
                 switch (condition.Op)
                 {
                     case Operation.Equals:
-                        sqlExps.Add($"{condition.Field} = @Param{index}");
-                        sqlParams[$"Param{index}"] = condition.Value;
+                        sqlExps.Add($"{condition.Field} = {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = condition.Value;
                         break;
                     case Operation.NotEquals:
-                        sqlExps.Add($"{condition.Field} <> @Param{index}");
-                        sqlParams[$"Param{index}"] = condition.Value;
+                        sqlExps.Add($"{condition.Field} <> {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = condition.Value;
                         break;
                     case Operation.Contains:
-                        sqlExps.Add($"{condition.Field} LIKE @Param{index}");
-                        sqlParams[$"Param{index}"] = $"%{condition.Value}%";
+                        sqlExps.Add($"{condition.Field} LIKE {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"%{condition.Value}%";
                         break;
                     case Operation.NotContains:
-                        sqlExps.Add($"{condition.Field} NOT LIKE @Param{index}");
-                        sqlParams[$"Param{index}"] = $"%{condition.Value}%";
+                        sqlExps.Add($"{condition.Field} NOT LIKE {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"%{condition.Value}%";
                         break;
                     case Operation.StartsWith:
-                        sqlExps.Add($"{condition.Field} LIKE @Param{index}");
-                        sqlParams[$"Param{index}"] = $"%{condition.Value}";
+                        sqlExps.Add($"{condition.Field} LIKE {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"%{condition.Value}";
                         break;
                     case Operation.EndsWith:
-                        sqlExps.Add($"{condition.Field} LIKE @Param{index}");
-                        sqlParams[$"Param{index}"] = $"{condition.Value}%";
+                        sqlExps.Add($"{condition.Field} LIKE {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"{condition.Value}%";
                         break;
                     case Operation.GreaterThen:
-                        sqlExps.Add($"{condition.Field} > @Param{index}");
-                        sqlParams[$"Param{index}"] = $"{condition.Value}";
+                        sqlExps.Add($"{condition.Field} > {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;
                     case Operation.GreaterThenOrEquals:
-                        sqlExps.Add($"{condition.Field} >= @Param{index}");
-                        sqlParams[$"Param{index}"] = $"{condition.Value}";
+                        sqlExps.Add($"{condition.Field} >= {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;
                     case Operation.LessThan:
-                        sqlExps.Add($"{condition.Field} < @Param{index}");
-                        sqlParams[$"Param{index}"] = $"{condition.Value}";
+                        sqlExps.Add($"{condition.Field} < {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;
                     case Operation.LessThanOrEquals:
-                        sqlExps.Add($"{condition.Field} <= @Param{index}");
-                        sqlParams[$"Param{index}"] = $"{condition.Value}";
+                        sqlExps.Add($"{condition.Field} <= {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;
                     case Operation.StdIn:
-                        sqlExps.Add($"{condition.Field} IN @Param{index}");
-                        sqlParams[$"Param{index}"] = $"{condition.Value}";
+                        sqlExps.Add($"{condition.Field} IN {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;
                     case Operation.StdNotIn:
-                        sqlExps.Add($"{condition.Field} NOT IN @Param{index}");
-                        sqlParams[$"Param{index}"] = $"{condition.Value}";
+                        sqlExps.Add($"{condition.Field} NOT IN {placeHolder}{paramName}");
+                        sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;
                 }
 
@@ -148,5 +166,11 @@ namespace DynamicSearch.Extenstions
 
             return sqlExps.Count > 1 ? string.Join(keywords, sqlExps) : sqlExps[0];
         }
+    }
+
+    public interface ITypeMappingProvider
+    {
+        string GetTableName(Type type);
+        string GetColumnName(PropertyInfo propertyInfo);
     }
 }

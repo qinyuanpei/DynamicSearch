@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Text;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Collections;
 using System.Reflection.Emit;
 using System.Linq.Expressions;
@@ -10,13 +12,14 @@ using System.Runtime.CompilerServices;
 
 namespace DynamicSearch.Core
 {
-
+    [Serializable]
     public class SearchParameters
     {
-        public PageModel Page { get; set; } = PageModel.Default;
-        public QueryModel Query { get; set; } = new QueryModel();
+        public PageModel PageModel { get; set; } = PageModel.Default;
+        public QueryModel QueryModel { get; set; } = new QueryModel();
     }
 
+    [Serializable]
     public class QueryModel : List<Condition>
     {
         public void Add<T>(Condition<T> condition) where T : class
@@ -33,19 +36,26 @@ namespace DynamicSearch.Core
         }
     }
 
+    [Serializable]
     public class PageModel
     {
-        public int CurrentPage { get; set; } = 1;
-        public int PageSize { get; set; } = 500;
-        public SortType SortType { get; set; }
-        public List<string> SortFields { get; set; }
-        public static PageModel Default => new PageModel() { PageSize = 20, CurrentPage = 1 };
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
+        public List<SortField> SortFields { get; set; }
+        public static PageModel Default => new PageModel() { PageSize = 500, CurrentPage = 1 };
     }
 
     public enum SortType
     {
         Asc = 10,
         Desc = 20
+    }
+
+    [Serializable]
+    public class SortField
+    {
+        public SortType SortType { get; set; }
+        public string Field { get; set; }
     }
 
     public enum Operation
@@ -64,6 +74,7 @@ namespace DynamicSearch.Core
         EndsWith = 120
     }
 
+    [Serializable]
     public class Condition
     {
         public string Field { get; set; }
