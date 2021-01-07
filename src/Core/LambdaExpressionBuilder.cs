@@ -54,9 +54,9 @@ namespace DynamicSearch.Core
                     return Expression.Call(propertyParam, "StartsWith", null, constantParam);
                 case Operation.EndsWith:
                     return Expression.Call(propertyParam, "EndsWith", null, constantParam);
-                case Operation.GreaterThen:
+                case Operation.GreaterThan:
                     return Expression.GreaterThan(propertyParam, constantParam);
-                case Operation.GreaterThenOrEquals:
+                case Operation.GreaterThanOrEquals:
                     return Expression.GreaterThanOrEqual(propertyParam, constantParam);
                 case Operation.LessThan:
                     return Expression.LessThan(propertyParam, constantParam);
