@@ -135,11 +135,11 @@ namespace DynamicSearch.Extenstions
                         sqlExps.Add($"{condition.Field} LIKE {placeHolder}{paramName}");
                         sqlParams[$"{paramName}"] = $"{condition.Value}%";
                         break;
-                    case Operation.GreaterThen:
+                    case Operation.GreaterThan:
                         sqlExps.Add($"{condition.Field} > {placeHolder}{paramName}");
                         sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;
-                    case Operation.GreaterThenOrEquals:
+                    case Operation.GreaterThanOrEquals:
                         sqlExps.Add($"{condition.Field} >= {placeHolder}{paramName}");
                         sqlParams[$"{paramName}"] = $"{condition.Value}";
                         break;

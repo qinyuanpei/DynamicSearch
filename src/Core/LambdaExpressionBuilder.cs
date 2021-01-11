@@ -77,12 +77,8 @@ namespace DynamicSearch.Core
                 return null;
 
             var exps = orConditions.Select(c => GetExpression(parameter, c)).ToList();
-            return exps.Aggregate<Expression, Expression>(null, (left, right) =>
-            {
-                if (left == null)
-                    return right;
-                return Expression.OrElse(left, right);
-            });
+            return exps.Aggregate<Expression, Expression>(null, (left, right) => 
+                left == null ? right : Expression.OrElse(left, right));
         }
 
         public static Expression<Func<T, bool>> BuildLambda<T>(IEnumerable<Condition> conditions)
@@ -106,11 +102,7 @@ namespace DynamicSearch.Core
                 .ToList();
 
             var exp = simpleExps.Concat(complexExps).Aggregate<Expression, Expression>(null, (left, right) =>
-            {
-                if (left == null)
-                    return right;
-                return Expression.AndAlso(left, right);
-            }); ;
+                left == null ? right : Expression.AndAlso(left, right));
             return Expression.Lambda<Func<T, bool>>(exp, parameter);
         }
 
@@ -124,11 +116,7 @@ namespace DynamicSearch.Core
                 .ToList();
 
             var exp = simpleExps.Aggregate<Expression, Expression>(null, (left, right) =>
-            {
-                if (left == null)
-                    return right;
-                return Expression.AndAlso(left, right);
-            });
+                left == null ? right : Expression.AndAlso(left, right));
             return Expression.Lambda<Func<T, bool>>(exp, parameter);
 
         }
@@ -143,11 +131,7 @@ namespace DynamicSearch.Core
                 .ToList();
 
             var exp = simpleExps.Aggregate<Expression, Expression>(null, (left, right) =>
-            {
-                if (left == null)
-                    return right;
-                return Expression.OrElse(left, right);
-            });
+                left == null ? right : Expression.OrElse(left, right));
             return Expression.Lambda<Func<T, bool>>(exp, parameter);
         }
     }
