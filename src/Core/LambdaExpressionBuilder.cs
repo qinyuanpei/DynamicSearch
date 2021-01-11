@@ -83,7 +83,9 @@ namespace DynamicSearch.Core
 
         public static Expression<Func<T, bool>> BuildLambda<T>(IEnumerable<Condition> conditions)
         {
-            if (conditions == null || !conditions.Any()) return x => true;
+            if (conditions == null || !conditions.Any()) 
+                return x => true;
+
             var parameter = Expression.Parameter(typeof(T), "x");
 
             //简单条件
@@ -108,7 +110,9 @@ namespace DynamicSearch.Core
 
         public static Expression<Func<T, bool>> BuildAndAlsoLambda<T>(IEnumerable<Condition> conditions)
         {
-            if (conditions == null || !conditions.Any()) return x => true;
+            if (conditions == null || !conditions.Any()) 
+                return x => true;
+
             var parameter = Expression.Parameter(typeof(T), "x");
             var simpleExps = conditions
                 .ToList()
@@ -123,7 +127,9 @@ namespace DynamicSearch.Core
 
         public static Expression<Func<T, bool>> BuildOrElseLambda<T>(IEnumerable<Condition> conditions)
         {
-            if (conditions == null || !conditions.Any()) return x => true;
+            if (conditions == null || !conditions.Any()) 
+                return x => true;
+                
             var parameter = Expression.Parameter(typeof(T), "x");
             var simpleExps = conditions
                 .ToList()
